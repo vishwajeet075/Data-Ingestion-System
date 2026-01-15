@@ -1,0 +1,15 @@
+streamlit
+PyPDF2
+pdfplumber
+pdfminer.six
+python-docx
+pytesseract
+Pillow
+moviepy
+SpeechRecognition
+pydub
+qdrant-client
+voyageai
+langchain
+pdf2image
+moviepy>=1.0.3
