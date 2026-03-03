@@ -13,3 +13,5 @@ voyageai
 langchain
 pdf2image
 moviepy>=1.0.3
+ffmpeg-python>=0.2.0
+opencv-python>=4.8.0  

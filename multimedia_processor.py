@@ -259,102 +259,102 @@ class MultimediaProcessor:
     @staticmethod
     def extract_text_from_image(image_path: str, preprocess: bool = True,
                             language: str = "eng") -> Tuple[str, Dict[str, Any]]:
-    """Extract text from image using OCR with preprocessing"""
-    debug_info = {
-        "method": "pytesseract_ocr",
-        "preprocessing": preprocess,
-        "language": language,
-        "success": False
-    }
+        """Extract text from image using OCR with preprocessing"""
+        debug_info = {
+            "method": "pytesseract_ocr",
+            "preprocessing": preprocess,
+            "language": language,
+            "success": False
+        }
 
-    if pytesseract is None or Image is None:
-        debug_info["error"] = "pytesseract/Pillow not installed"
-        st.error("Required packages not installed. Install with: pip install pytesseract pillow")
-        return "", debug_info
+        if pytesseract is None or Image is None:
+            debug_info["error"] = "pytesseract/Pillow not installed"
+            st.error("Required packages not installed. Install with: pip install pytesseract pillow")
+            return "", debug_info
 
-    try:
-        # Load image
-        with st.spinner("Loading image..."):
-            image = Image.open(image_path)
-            debug_info["original_size"] = image.size
-            debug_info["original_mode"] = image.mode
+        try:
+            # Load image
+            with st.spinner("Loading image..."):
+                image = Image.open(image_path)
+                debug_info["original_size"] = image.size
+                debug_info["original_mode"] = image.mode
 
-        # Optional preprocessing for better OCR
-        if preprocess:
-            with st.spinner("Preprocessing image for better OCR..."):
-                # Convert to grayscale if not already
-                if image.mode != 'L':
-                    image = image.convert('L')
+            # Optional preprocessing for better OCR
+            if preprocess:
+                with st.spinner("Preprocessing image for better OCR..."):
+                    # Convert to grayscale if not already
+                    if image.mode != 'L':
+                        image = image.convert('L')
 
-                # Enhance contrast
-                enhancer = ImageEnhance.Contrast(image)
-                image = enhancer.enhance(2.0)  # Increase contrast
+                    # Enhance contrast
+                    enhancer = ImageEnhance.Contrast(image)
+                    image = enhancer.enhance(2.0)  # Increase contrast
 
-                # Enhance sharpness
-                enhancer = ImageEnhance.Sharpness(image)
-                image = enhancer.enhance(2.0)  # Increase sharpness
+                    # Enhance sharpness
+                    enhancer = ImageEnhance.Sharpness(image)
+                    image = enhancer.enhance(2.0)  # Increase sharpness
 
-                # Optional: Apply slight blur to reduce noise
-                image = image.filter(ImageFilter.MedianFilter(size=3))
+                    # Optional: Apply slight blur to reduce noise
+                    image = image.filter(ImageFilter.MedianFilter(size=3))
 
-                debug_info["preprocessing_applied"] = True
+                    debug_info["preprocessing_applied"] = True
 
-        # Configure OCR for better accuracy
-        custom_config = r'--oem 3 --psm 6'
+            # Configure OCR for better accuracy
+            custom_config = r'--oem 3 --psm 6'
 
-        # Extract text
-        with st.spinner("Running OCR..."):
-            text = pytesseract.image_to_string(
-                image,
-                config=custom_config,
-                lang=language
-            )
+            # Extract text
+            with st.spinner("Running OCR..."):
+                text = pytesseract.image_to_string(
+                    image,
+                    config=custom_config,
+                    lang=language
+                )
 
-        debug_info["text_length"] = len(text.strip())
-        debug_info["word_count"] = len(text.strip().split())
+            debug_info["text_length"] = len(text.strip())
+            debug_info["word_count"] = len(text.strip().split())
 
-        if text.strip():
-            debug_info["success"] = True
-            st.success(f"✓ OCR complete: {debug_info['word_count']} words extracted")
+            if text.strip():
+                debug_info["success"] = True
+                st.success(f"✓ OCR complete: {debug_info['word_count']} words extracted")
 
-            # Show OCR confidence if available
-            try:
-                data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-                confidences = [float(c) for c in data['conf'] if float(c) > 0]
-                if confidences:
-                    debug_info["avg_confidence"] = sum(confidences) / len(confidences)
-                    st.info(f"Average OCR confidence: {debug_info['avg_confidence']:.1f}%")
-            except:
-                pass
+                # Show OCR confidence if available
+                try:
+                    data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+                    confidences = [float(c) for c in data['conf'] if float(c) > 0]
+                    if confidences:
+                        debug_info["avg_confidence"] = sum(confidences) / len(confidences)
+                        st.info(f"Average OCR confidence: {debug_info['avg_confidence']:.1f}%")
+                except:
+                    pass
+            else:
+                debug_info["warning"] = "No text found in image"
+                st.warning("No text could be extracted from image")
+
+            return text.strip(), debug_info
+
+        except Exception as e:
+            debug_info["error"] = str(e)
+            st.error(f"Image OCR failed: {e}")
+            return "", debug_info
+
+    @staticmethod
+    def process_audio_to_text(audio_path: str, language: str = "en-US") -> Tuple[str, Dict[str, Any]]:
+        """Process audio file to text"""
+        return MultimediaProcessor.transcribe_audio(audio_path, language)
+
+    @classmethod
+    def process_file(cls, file_path: str, filename: str) -> Tuple[str, Dict[str, Any]]:
+        """Process multimedia file based on extension"""
+        file_ext = filename.lower().split('.')[-1]
+    
+        if file_ext in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
+            return cls.process_video_to_text(file_path)
+    
+        elif file_ext in ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac']:
+            return cls.process_audio_to_text(file_path)
+    
+        elif file_ext in ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'gif']:
+            return cls.extract_text_from_image(file_path)
+    
         else:
-            debug_info["warning"] = "No text found in image"
-            st.warning("No text could be extracted from image")
-
-        return text.strip(), debug_info
-
-    except Exception as e:
-        debug_info["error"] = str(e)
-        st.error(f"Image OCR failed: {e}")
-        return "", debug_info
-
-@staticmethod
-def process_audio_to_text(audio_path: str, language: str = "en-US") -> Tuple[str, Dict[str, Any]]:
-    """Process audio file to text"""
-    return MultimediaProcessor.transcribe_audio(audio_path, language)
-
-@classmethod
-def process_file(cls, file_path: str, filename: str) -> Tuple[str, Dict[str, Any]]:
-    """Process multimedia file based on extension"""
-    file_ext = filename.lower().split('.')[-1]
-
-    if file_ext in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
-        return cls.process_video_to_text(file_path)
-
-    elif file_ext in ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac']:
-        return cls.process_audio_to_text(file_path)
-
-    elif file_ext in ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'gif']:
-        return cls.extract_text_from_image(file_path)
-
-    else:
-        raise ValueError(f"Unsupported multimedia format: {file_ext}")
+            raise ValueError(f"Unsupported multimedia format: {file_ext}")
